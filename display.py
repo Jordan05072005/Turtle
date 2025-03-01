@@ -1,10 +1,17 @@
-from PIL import ImageGrab
+from PIL import Image
 import turtle
 import time
 
+
 class Display:
 	def	__init__(self):
+		img_path = "maps/test.png"
+		img = Image.open(img_path)
+		img_w, img_h = img.size
 		self.screen = turtle.Screen()
+		self.screen.setup(img_w, img_h)
+		self.screen.screensize(img_w, img_h)
+		self.screen.bgpic(img_path)
 		self.screen.colormode(255)
 		self.turtles = [turtle.Turtle() for i in range(3)]
 		self.turtles[0].color("blue")
