@@ -33,6 +33,8 @@ def TURN(a) :
 			f.seek(0, 0)
 		f.write(f"TURN {a}")
 		f.close()
+		set_var()
+
 
 def RESET() :
 	with open("action.txt", "r+") as f :
@@ -40,6 +42,7 @@ def RESET() :
 			f.seek(0, 0)
 		f.write("RESET")
 		f.close()
+		set_var()
 
 def CLEAR() :
 	with open("action.txt", "w") as f :
