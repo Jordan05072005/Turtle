@@ -35,7 +35,7 @@ class	Env:
 		return self.is_wall(check_x, check_y)
 
 	def	cast_ray(self, start_pos, ray_angle):
-		ray_angle = math.radians(ray_angle)
+		ray_angle = math.radians(-ray_angle)
 		ray_angle %= 2 * math.pi
 		cos_angle, sin_angle = math.cos(ray_angle), math.sin(ray_angle)
 		tan_angle = math.tan(ray_angle)
@@ -76,20 +76,27 @@ class	Env:
 
 class	Display:
 	def	__init__(self):
-		# self.img_path = "maps/race.png"
-		self.img_path = "maps/test.png"
-		# self.start = (452 - 400, (707 - 400) * -1, 180)
-		self.start = (0, 0, 0)
+		maps = {
+			"race": (52, -307, 180),
+			"race2": (60, -334, 180),
+			"racer": (-364, -356 * -1, -30),
+			"42": (63, -133 * -1, 30),
+			"lab": (10, 10 * -1, 0),
+			"default": (0, 0 * -1, 0)
+		}
+		map_name = "race"
+		self.img_path = f"maps/{map_name}.png"
+		self.start = maps[map_name]
+		self.wait = 1
 		self.screen = turtle.Screen()
 		self.init_screen()
 		self.turtles = [turtle.Turtle() for i in range(3)]
 		self.init_turtles()
 		self.path = ["naboo/", "gotham/", "winterfell/"]
 		self.env = Env(self.img_path, self.screen)
-		self.wall_dist = [[float('inf') for i in range(4)] for i in range(3)]
+		self.wall_dist = [[float('inf') for i in range(6)] for i in range(3)]
 		for i in range(3):
 			self.update_env(self.turtles[i], f"{self.path[i]}env.txt", self.wall_dist[i])
-		print(f"a\na\na")
 
 	def	init_screen(self):
 		img = Image.open(self.img_path)
@@ -101,12 +108,14 @@ class	Display:
 	def	init_turtles(self):
 		color = ["blue", "red", "green"]
 		for i in range(3):
+			self.turtles[i].penup()
 			self.turtles[i].color(color[i])
 			self.turtles[i].shape("turtle")
-			self.turtles[i].shapesize(0.5, 0.5, 1)
-			self.turtles[i].penup()
+			self.turtles[i].shapesize(0.75, 0.75, 1)
 			self.turtles[i].setpos(self.start[0], self.start[1])
 			self.turtles[i].setheading(self.start[2])
+			self.turtles[i].pendown()
+			self.turtles[i].speed(0)
 
 	def	read_cmd(self, filename):
 		with open(filename, "r") as file:
@@ -116,7 +125,7 @@ class	Display:
 				return (content)
 
 	
-	def	draw_raycast_turtle(self, start, distance, angle):
+	def	draw_raycast_turtle(self, start, distance, angle, color = "red"):
 		turtle.tracer(0, 0)
 		original_x, original_y = turtle.pos()
 		end_x = start[0] + distance * math.cos(math.radians(angle))
@@ -124,70 +133,62 @@ class	Display:
 		turtle.penup()
 		turtle.goto(start[0], start[1])
 		turtle.pendown()
+		turtle.color(color)
 		turtle.goto(end_x, end_y)
 		turtle.penup()
 		turtle.goto(original_x, original_y)
 		turtle.update()
 
 	def ft_forward(self, dist, turtle, env):
-		heading_angle = math.radians(turtle.heading())
-		offset_x = 10 * math.cos(heading_angle + math.pi / 2)
-		offset_y = 10 * math.sin(heading_angle + math.pi / 2)
-		# offset_x = math.copysign(offset_x, math.sin(heading_angle))
-		# offset_y = math.copysign(offset_y, -math.cos(heading_angle))
-		# heading = turtle.heading() % 360
-		#left ray #left down : - - // right down : + + // left up : + +
-		#right ray #left down : + + // right down : - - // left up : - -
-		ray_left = self.env.cast_ray((turtle.xcor() + offset_x, turtle.ycor() + offset_y), turtle.heading())
-		ray_right = self.env.cast_ray((turtle.xcor() - offset_x, turtle.ycor() - offset_y), turtle.heading())
-		turtle.clear()
-		self.draw_raycast_turtle((turtle.xcor() + offset_x, turtle.ycor() + offset_y), ray_left, turtle.heading())
-		self.draw_raycast_turtle((turtle.xcor() - offset_x, turtle.ycor() - offset_y), ray_right, turtle.heading())
-		sys.stdout.write("\033[F\033[K" * 3)
-		print(f"Ray left is : {ray_left}\nRay middle is : {env[0]}\nRay right is : {ray_right}")
-		max_safe_dist = min(ray_left, ray_right, env[0])
-		movement_distance = min(dist, max_safe_dist - 0.5)
-		# if movement_distance > 0:
-		# 	turtle.forward(math.floor(movement_distance))
+		if (env[0] < env[2]):
+			heading_angle = math.radians(turtle.heading())
+			offset_x = 1 * math.cos(heading_angle + math.pi / 2)
+			offset_y = 1 * math.sin(heading_angle + math.pi / 2)
+			ray_left = self.env.cast_ray((turtle.xcor() + offset_x, turtle.ycor() + offset_y), turtle.heading())
+			ray_right = self.env.cast_ray((turtle.xcor() - offset_x, turtle.ycor() - offset_y), turtle.heading())
+			max_safe_dist = min(ray_left, ray_right, env[0] - 1)
+		else:
+			max_safe_dist = env[0]
+		movement_distance = math.floor(min(dist, max_safe_dist - 1))
+		# while (movement_distance > 0):
+		# 	step = min(movement_distance, 1)
+		# 	turtle.forward(step)
+		# 	movement_distance -= 1
+		if (movement_distance > 0):
+			turtle.forward(movement_distance)
 
-	def	ft_backward(self, dist, turtle, env):
-		return
-		heading_angle = math.radians(turtle.heading())
-		offset_x = 0.5 * math.cos(heading_angle + math.pi / 2)
-		offset_y = 0.5 * math.sin(heading_angle + math.pi / 2)
-		ray_left = self.env.cast_ray((turtle.xcor() + offset_x, turtle.ycor() + offset_y), turtle.heading() + 180)
-		ray_right = self.env.cast_ray((turtle.xcor() - offset_x, turtle.ycor() - offset_y), turtle.heading() + 180)
-		max_safe_dist = min(ray_left, ray_right)
-		movement_distance = min(dist, max_safe_dist - 0.5)
-		if movement_distance > 0:
-			turtle.forward(math.floor(movement_distance))
+	def	ft_reset(self, turtle):
+		turtle.penup()
+		turtle.clear()
+		turtle.setpos(self.start[0], self.start[1])
+		turtle.setheading(self.start[2])
+		turtle.pendown()
 
 	def	switch_cmd(self, cmd, turtle, env):
 		if not cmd:
 			return
 		if cmd[0] == "MOVE":
-			distance = 10 * float(cmd[1])
-			if distance > 0:
-				self.ft_forward(distance, turtle, env)
-			else:
-				self.ft_backward(-distance, turtle, env)
+			distance = abs(1 * float(cmd[1]))
+			self.ft_forward(distance, turtle, env)
 		elif cmd[0] == "TURN":
-			angle = 22.5 * float(cmd[1])
-			if angle > 0:
-				turtle.right(angle)
+			angle = 10 * float(cmd[1])
+			if angle < 0:
+				turtle.right(-angle)
 			else:
-				turtle.left(-angle)
+				turtle.left(angle)
 		elif cmd[0] == "RESET":
-			turtle.setpos(self.start[0], self.start[1])
-			turtle.setheading(self.start[2])
+			self.ft_reset(turtle)
 		else:
 			print(f"Invalid command: {cmd}")
 
 	def	update_env(self, turtle, path, env):
-		text = ["FRONT", "LEFT", "BACK", "RIGHT"]
+		text = ["FRONT", "LEFT", "BACK", "RIGHT", "FLEFT", "FRIGHT"]
 		with open(path, "w") as file:
-			for i in range(4):
-				distance = self.env.cast_ray(turtle.pos(), turtle.heading() + 90 * i)
+			for i in range(6):
+				if (i < 4):
+					distance = self.env.cast_ray(turtle.pos(), turtle.heading() + 90 * i)
+				else:
+					distance = self.env.cast_ray(turtle.pos(), turtle.heading() + 20 * (1 if i == 4 else -1))
 				env[i] = distance
 				file.write(f"{text[i]} {distance}\n")
 		file.close()
@@ -199,15 +200,16 @@ class	Display:
 	def	update(self):
 		for i in range(3):
 			cmd = self.read_cmd(f"{self.path[i]}action.txt")
-			if (not cmd):
-				continue
+			# if (not cmd):
+				# continue
 			self.switch_cmd(cmd, self.turtles[i], self.wall_dist[i])
 			test_x, test_y = self.env.turtle_to_image(self.turtles[i].pos())
 			if (self.env.is_wall(test_x, test_y)):
-				print("This turtle is stuck")
+				pass
+				# self.ft_reset(self.turtles[i])
 			self.update_env(self.turtles[i], f"{self.path[i]}env.txt", self.wall_dist[i])
 			self.clear_file(f"{self.path[i]}action.txt")
-		self.screen.ontimer(self.update, 1000)
+		self.screen.ontimer(self.update, self.wait)
 	
 	def	close_on_escape(self):
 		self.screen.bye()

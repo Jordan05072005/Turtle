@@ -4,6 +4,7 @@ import sys
 
 class Algo:
 	def	__init__(self):
+		self.wait = 0.001
 		self.front = float('inf')
 		self.back = float('inf')
 		self.left = float('inf')
@@ -29,7 +30,7 @@ class Algo:
 		with open("action.txt", "r+") as f :
 			while (len(f.read()) != 0):
 				f.seek(0, 0)
-				time.sleep(0.1)
+				time.sleep(self.wait)
 			f.write(f"MOVE {a}")
 			f.close()
 			self.update_env()
@@ -38,7 +39,7 @@ class Algo:
 		with open("action.txt", "r+") as f :
 			while (len(f.read()) != 0):
 				f.seek(0, 0)
-				time.sleep(0.1)
+				time.sleep(self.wait)
 			f.write(f"TURN {a}")
 			f.close()
 			self.update_env()
@@ -47,16 +48,25 @@ class Algo:
 		with open("action.txt", "r+") as f :
 			while (len(f.read()) != 0):
 				f.seek(0, 0)
-				time.sleep(0.1)
+				time.sleep(self.wait)
 			f.write("RESET")
 			f.close()
 			self.update_env()
 	
 	def	run(self):
 		self.reset()
+		correction = 0
 		while (True):
-			self.turn(1)
-			self.move(1)
+			self.move(self.front / 2)
+			self.turn(0.5 * correction)
+			self.move(max(0, self.front - 2))
+			if (self.right > self.left):
+				correction = -abs(min(-0.75, (1 / self.front)))
+				self.turn(min(-0.75, (1 / self.front)))
+			else:
+				correction = max(0.75, (1 / self.front) * -1)
+				self.turn(max(0.75, (1 / self.front) * -1))
+
 
 
 def	signal_handler(sig, frame):
