@@ -1,14 +1,34 @@
 import math
 import time
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageTk
 import turtle
 import sys
+import tkinter as tk
 
 class	Env:
-	def	__init__(self, img_path, screen):
+	def	__init__(self, img_path, screen, canvas):
 		self.screen = screen
-		self.image = Image.open(img_path).convert("RGB")
+		self.canvas = canvas
+		self.image = Image.open(f"{img_path}_border.png").convert("RGB")
 		self.img_w, self.img_h = self.image.size
+		self.overlay_image = None
+		self.overlay_id = None
+
+	def draw_overlay(self, img_path):
+		""" Ensure the overlay is drawn only once and stays on top """
+		if self.overlay_id:  # Overlay already exists, just bring it forward
+			self.canvas.tag_raise(self.overlay_id)
+			return
+
+		img = Image.open(img_path).convert("RGBA")
+		img = img.resize((self.img_w, self.img_h), Image.LANCZOS)
+		self.overlay_image = ImageTk.PhotoImage(img)
+		
+		self.overlay_id = self.canvas.create_image(-400, -400, image=self.overlay_image, anchor="nw")
+		self.canvas.image = self.overlay_image  # Prevent garbage collection
+		self.canvas.tag_raise(self.overlay_id)
+
+
 
 	def turtle_to_image(self, coo):
 		screen_w = self.img_w
@@ -25,7 +45,9 @@ class	Env:
 	
 	def is_wall(self, x, y):
 		color = self.get_pixel_color(x, y)
-		if (color != (255, 255, 255)):
+		# if (color != (255, 255, 255)):
+		# 	return (1)
+		if (color != (242, 239, 208)):
 			return (1)
 		return (0)
 
@@ -77,6 +99,7 @@ class	Env:
 class	Display:
 	def	__init__(self):
 		maps = {
+			"map1": (274 - 400, (673 - 400) * -1, 0),
 			"race": (52, -307, 180),
 			"race2": (60, -334, 180),
 			"racer": (-364, -356 * -1, -30),
@@ -84,25 +107,27 @@ class	Display:
 			"lab": (10, 10 * -1, 0),
 			"default": (0, 0 * -1, 0)
 		}
-		map_name = "race"
-		self.img_path = f"maps/{map_name}.png"
+		map_name = "map1"
+		self.img_path = f"maps/{map_name}"
 		self.start = maps[map_name]
-		self.wait = 1
+		self.wait = 10
 		self.screen = turtle.Screen()
+		self.canvas = self.screen.getcanvas()
 		self.init_screen()
 		self.turtles = [turtle.Turtle() for i in range(3)]
 		self.init_turtles()
 		self.path = ["naboo/", "gotham/", "winterfell/"]
-		self.env = Env(self.img_path, self.screen)
+		self.env = Env(self.img_path, self.screen, self.canvas)
+		self.env.draw_overlay(f"{self.img_path}_overlay.png")
 		self.wall_dist = [[float('inf') for i in range(6)] for i in range(3)]
 		for i in range(3):
 			self.update_env(self.turtles[i], f"{self.path[i]}env.txt", self.wall_dist[i])
 
 	def	init_screen(self):
-		img = Image.open(self.img_path)
+		img = Image.open(f"{self.img_path}.png")
 		img_w, img_h = img.size
 		self.screen.setup(img_w, img_h)
-		self.screen.bgpic(self.img_path)
+		self.screen.bgpic(f"{self.img_path}.png")
 		self.screen.colormode(255)
 
 	def	init_turtles(self):
@@ -114,7 +139,6 @@ class	Display:
 			self.turtles[i].shapesize(0.75, 0.75, 1)
 			self.turtles[i].setpos(self.start[0], self.start[1])
 			self.turtles[i].setheading(self.start[2])
-			self.turtles[i].pendown()
 			self.turtles[i].speed(0)
 
 	def	read_cmd(self, filename):
@@ -150,19 +174,13 @@ class	Display:
 		else:
 			max_safe_dist = env[0]
 		movement_distance = math.floor(min(dist, max_safe_dist - 1))
-		# while (movement_distance > 0):
-		# 	step = min(movement_distance, 1)
-		# 	turtle.forward(step)
-		# 	movement_distance -= 1
 		if (movement_distance > 0):
 			turtle.forward(movement_distance)
 
 	def	ft_reset(self, turtle):
-		turtle.penup()
 		turtle.clear()
 		turtle.setpos(self.start[0], self.start[1])
 		turtle.setheading(self.start[2])
-		turtle.pendown()
 
 	def	switch_cmd(self, cmd, turtle, env):
 		if not cmd:
@@ -207,6 +225,8 @@ class	Display:
 			if (self.env.is_wall(test_x, test_y)):
 				pass
 				# self.ft_reset(self.turtles[i])
+			# self.env.draw_overlay(f"{self.img_path}_overlay.png")
+			self.canvas.tag_raise(self.env.overlay_id)
 			self.update_env(self.turtles[i], f"{self.path[i]}env.txt", self.wall_dist[i])
 			self.clear_file(f"{self.path[i]}action.txt")
 		self.screen.ontimer(self.update, self.wait)
