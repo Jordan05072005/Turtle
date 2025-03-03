@@ -4,7 +4,7 @@ import time
 class Algo:
 	def	__init__(self):
 		self.action = ["MOVE", "TURN"]
-		n = 3
+		n = 5
 		self.values = [i for i in range(-n, n + 1) if i != 0]
 		self.filename = "action.txt"
 
