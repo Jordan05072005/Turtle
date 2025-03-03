@@ -110,7 +110,7 @@ class	Display:
 		map_name = "map1"
 		self.img_path = f"maps/{map_name}"
 		self.start = maps[map_name]
-		self.wait = 10
+		self.wait = 1
 		self.screen = turtle.Screen()
 		self.canvas = self.screen.getcanvas()
 		self.init_screen()
